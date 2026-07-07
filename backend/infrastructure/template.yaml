@@ -1,0 +1,319 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ParkAnywhere API (API Gateway + Lambda + DynamoDB)
+
+Parameters:
+  CognitoUserPoolId:
+    Type: String
+    Description: Cognito User Pool ID used for JWT auth
+  CognitoAppClientId:
+    Type: String
+    Description: Cognito App Client ID accepted by API Gateway JWT authorizer
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 10
+    MemorySize: 256
+    Environment:
+      Variables:
+        COMPANIES_TABLE: !Ref CompaniesTable
+        LOTS_TABLE: !Ref ParkingLotsTable
+        RESERVATIONS_TABLE: !Ref ReservationsTable
+
+Resources:
+  ParkAnywhereApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: v1
+      Auth:
+        Authorizers:
+          CognitoJwtAuthorizer:
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPoolId}
+              audience:
+                - !Ref CognitoAppClientId
+            IdentitySource: "$request.header.Authorization"
+
+  CompaniesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: companyId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: companyId
+          KeyType: HASH
+
+  ParkingLotsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: lotId
+          AttributeType: S
+        - AttributeName: companyId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: lotId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: companyId-index
+          KeySchema:
+            - AttributeName: companyId
+              KeyType: HASH
+            - AttributeName: lotId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  ReservationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: reservationId
+          AttributeType: S
+        - AttributeName: lotId
+          AttributeType: S
+        - AttributeName: startedAt
+          AttributeType: S
+        - AttributeName: licensePlate
+          AttributeType: S
+        - AttributeName: companyId
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: reservationId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: lotId-startedAt-index
+          KeySchema:
+            - AttributeName: lotId
+              KeyType: HASH
+            - AttributeName: startedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: lotId-licensePlate-index
+          KeySchema:
+            - AttributeName: lotId
+              KeyType: HASH
+            - AttributeName: licensePlate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: companyId-status-index
+          KeySchema:
+            - AttributeName: companyId
+              KeyType: HASH
+            - AttributeName: status
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  CreateCompanyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/createCompany.handler
+      Policies:
+        - Statement:
+            - Sid: CompaniesWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt CompaniesTable.Arn
+      Events:
+        CreateCompany:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /companies
+            Method: POST
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+  GetCompanyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/getCompany.handler
+      Policies:
+        - Statement:
+            - Sid: CompaniesRead
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt CompaniesTable.Arn
+      Events:
+        GetCompany:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /companies/{companyId}
+            Method: GET
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+  ListCompanyLotsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/listCompanyLots.handler
+      Policies:
+        - Statement:
+            - Sid: LotsQueryByCompany
+              Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !GetAtt ParkingLotsTable.Arn
+                - !Sub ${ParkingLotsTable.Arn}/index/companyId-index
+      Events:
+        ListCompanyLots:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /companies/{companyId}/lots
+            Method: GET
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+  CreateLotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/createLot.handler
+      Policies:
+        - Statement:
+            - Sid: LotsWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt ParkingLotsTable.Arn
+      Events:
+        CreateLot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /companies/{companyId}/lots
+            Method: POST
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+  GetPublicLotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/getPublicLot.handler
+      Policies:
+        - Statement:
+            - Sid: LotsReadPublic
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt ParkingLotsTable.Arn
+      Events:
+        GetPublicLot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /public/lots/{lotId}
+            Method: GET
+
+  UpdateLotConfigFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/updateLotConfig.handler
+      Policies:
+        - Statement:
+            - Sid: LotsReadWrite
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt ParkingLotsTable.Arn
+      Events:
+        UpdateLot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /lots/{lotId}
+            Method: PATCH
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+  CreateReservationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/createReservation.handler
+      Policies:
+        - Statement:
+            - Sid: ReservationCreateReadLot
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt ParkingLotsTable.Arn
+            - Sid: ReservationCreateWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt ReservationsTable.Arn
+      Events:
+        CreateReservation:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /public/lots/{lotId}/reservations
+            Method: POST
+
+  ListReservationsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/listReservations.handler
+      Policies:
+        - Statement:
+            - Sid: ReservationsRead
+              Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource:
+                - !GetAtt ReservationsTable.Arn
+                - !Sub ${ReservationsTable.Arn}/index/lotId-startedAt-index
+                - !Sub ${ReservationsTable.Arn}/index/lotId-licensePlate-index
+                - !Sub ${ReservationsTable.Arn}/index/companyId-status-index
+      Events:
+        ListReservations:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /enforcement/reservations
+            Method: GET
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+  UpdateReservationStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambdas/handlers/updateReservationStatus.handler
+      Policies:
+        - Statement:
+            - Sid: ReservationStatusReadWrite
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt ReservationsTable.Arn
+      Events:
+        UpdateReservationStatus:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ParkAnywhereApi
+            Path: /enforcement/reservations/{reservationId}/status
+            Method: PATCH
+            Auth:
+              Authorizer: CognitoJwtAuthorizer
+
+Outputs:
+  ApiBaseUrl:
+    Description: API base URL
+    Value: !Sub 'https://${ParkAnywhereApi}.execute-api.${AWS::Region}.amazonaws.com/v1'

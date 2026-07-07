@@ -3,6 +3,7 @@ import {
   parkingLots as seedLots,
   reservations as seedReservations,
 } from '../data/mockData'
+import { apiConfig, requestJson } from './apiClient'
 
 const companies = [...seedCompanies]
 const lots = [...seedLots]
@@ -14,8 +15,49 @@ const withLatency = (result) => {
   })
 }
 
+const mapLotFromApi = (lot) => ({
+  id: lot.lotId,
+  companyId: lot.companyId,
+  name: lot.name,
+  address: lot.address,
+  allowDurationParking: lot.allowDurationParking,
+  requireSpotNumber: lot.requireSpotNumber,
+  customerFields: lot.customerFields,
+  pricing: lot.pricing,
+})
+
+const mapReservationFromApi = (reservation) => ({
+  id: reservation.reservationId,
+  lotId: reservation.lotId,
+  companyId: reservation.companyId,
+  customerFirst: reservation.customerFirst,
+  customerLast: reservation.customerLast,
+  licensePlate: reservation.licensePlate,
+  spotNumber: reservation.spotNumber,
+  durationHours: reservation.durationHours,
+  status: reservation.status,
+  paidAmount: reservation.paidAmount,
+  startedAt: reservation.startedAt,
+  expiresAt: reservation.expiresAt,
+})
+
 export const parkingService = {
   async getLandingSnapshot() {
+    if (!apiConfig.useMock) {
+      const [ownerLotsA, ownerLotsB] = await Promise.all([
+        requestJson('/companies/34242/lots', { token: import.meta.env.VITE_OWNER_JWT }),
+        requestJson('/companies/48610/lots', { token: import.meta.env.VITE_OWNER_JWT }),
+      ])
+
+      const remoteLots = [...(ownerLotsA.items || []), ...(ownerLotsB.items || [])].map(mapLotFromApi)
+
+      return {
+        companies,
+        lots: remoteLots,
+        activeReservationCount: 0,
+      }
+    }
+
     return withLatency({
       companies,
       lots,
@@ -24,10 +66,34 @@ export const parkingService = {
   },
 
   async getLotById(lotId) {
+    if (!apiConfig.useMock) {
+      const lot = await requestJson(`/public/lots/${lotId}`)
+      return mapLotFromApi(lot)
+    }
+
     return withLatency(lots.find((lot) => lot.id === lotId) ?? null)
   },
 
   async searchReservations({ lotIds = [], query = '', status = '' }) {
+    if (!apiConfig.useMock) {
+      const lotId = lotIds[0]
+
+      const params = new URLSearchParams()
+      if (lotId) params.set('lotId', lotId)
+      if (status) params.set('status', status)
+
+      if (query) {
+        params.set('licensePlate', query)
+        params.set('spotNumber', query)
+      }
+
+      const result = await requestJson(`/enforcement/reservations?${params.toString()}`, {
+        token: import.meta.env.VITE_ENFORCER_JWT,
+      })
+
+      return (result.items || []).map(mapReservationFromApi)
+    }
+
     const normalizedQuery = query.trim().toLowerCase()
 
     const filtered = reservations.filter((reservation) => {
@@ -54,6 +120,24 @@ export const parkingService = {
   },
 
   async createReservation(payload) {
+    if (!apiConfig.useMock) {
+      const reservation = await requestJson(`/public/lots/${payload.lotId}/reservations`, {
+        method: 'POST',
+        body: {
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          phone: payload.phone,
+          licensePlate: payload.licensePlate,
+          spotNumber: payload.spotNumber,
+          durationHours: payload.durationHours,
+          paidAmount: payload.paidAmount,
+          notes: payload.notes,
+        },
+      })
+
+      return mapReservationFromApi(reservation)
+    }
+
     const lot = lots.find((entry) => entry.id === payload.lotId)
 
     if (!lot) {
@@ -85,6 +169,16 @@ export const parkingService = {
   },
 
   async updateReservationStatus(reservationId, status) {
+    if (!apiConfig.useMock) {
+      const updated = await requestJson(`/enforcement/reservations/${reservationId}/status`, {
+        method: 'PATCH',
+        token: import.meta.env.VITE_ENFORCER_JWT,
+        body: { status },
+      })
+
+      return mapReservationFromApi(updated)
+    }
+
     const reservation = reservations.find((entry) => entry.id === reservationId)
 
     if (!reservation) {
@@ -97,6 +191,14 @@ export const parkingService = {
   },
 
   async getOwnerLots(companyId) {
+    if (!apiConfig.useMock) {
+      const result = await requestJson(`/companies/${companyId}/lots`, {
+        token: import.meta.env.VITE_OWNER_JWT,
+      })
+
+      return (result.items || []).map(mapLotFromApi)
+    }
+
     return withLatency(lots.filter((lot) => lot.companyId === companyId))
   },
 
@@ -105,6 +207,23 @@ export const parkingService = {
   },
 
   async createLot(payload) {
+    if (!apiConfig.useMock) {
+      const lot = await requestJson(`/companies/${payload.companyId}/lots`, {
+        method: 'POST',
+        token: import.meta.env.VITE_OWNER_JWT,
+        body: {
+          name: payload.name,
+          address: payload.address,
+          allowDurationParking: payload.allowDurationParking,
+          requireSpotNumber: payload.requireSpotNumber,
+          customerFields: payload.customerFields,
+          pricing: payload.pricing,
+        },
+      })
+
+      return mapLotFromApi(lot)
+    }
+
     const newLot = {
       id: `${Math.floor(Math.random() * 9000000) + 1000000}`,
       companyId: payload.companyId,
@@ -122,6 +241,16 @@ export const parkingService = {
   },
 
   async updateLotConfig(lotId, patch) {
+    if (!apiConfig.useMock) {
+      const lot = await requestJson(`/lots/${lotId}`, {
+        method: 'PATCH',
+        token: import.meta.env.VITE_OWNER_JWT,
+        body: patch,
+      })
+
+      return mapLotFromApi(lot)
+    }
+
     const lot = lots.find((entry) => entry.id === lotId)
 
     if (!lot) {
