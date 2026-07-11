@@ -4,10 +4,15 @@ import {
   reservations as seedReservations,
 } from '../data/mockData'
 import { apiConfig, requestJson } from './apiClient'
+import { getAuthToken } from '../auth/tokenStore'
 
 const companies = [...seedCompanies]
 const lots = [...seedLots]
 const reservations = [...seedReservations]
+
+const getProtectedToken = () => {
+  return getAuthToken() || import.meta.env.VITE_OWNER_JWT || import.meta.env.VITE_ENFORCER_JWT || null
+}
 
 const withLatency = (result) => {
   return new Promise((resolve) => {
@@ -45,8 +50,8 @@ export const parkingService = {
   async getLandingSnapshot() {
     if (!apiConfig.useMock) {
       const [ownerLotsA, ownerLotsB] = await Promise.all([
-        requestJson('/companies/34242/lots', { token: import.meta.env.VITE_OWNER_JWT }),
-        requestJson('/companies/48610/lots', { token: import.meta.env.VITE_OWNER_JWT }),
+        requestJson('/companies/34242/lots', { token: getProtectedToken() }),
+        requestJson('/companies/48610/lots', { token: getProtectedToken() }),
       ])
 
       const remoteLots = [...(ownerLotsA.items || []), ...(ownerLotsB.items || [])].map(mapLotFromApi)
@@ -88,7 +93,7 @@ export const parkingService = {
       }
 
       const result = await requestJson(`/enforcement/reservations?${params.toString()}`, {
-        token: import.meta.env.VITE_ENFORCER_JWT,
+        token: getProtectedToken(),
       })
 
       return (result.items || []).map(mapReservationFromApi)
@@ -172,7 +177,7 @@ export const parkingService = {
     if (!apiConfig.useMock) {
       const updated = await requestJson(`/enforcement/reservations/${reservationId}/status`, {
         method: 'PATCH',
-        token: import.meta.env.VITE_ENFORCER_JWT,
+        token: getProtectedToken(),
         body: { status },
       })
 
@@ -193,7 +198,7 @@ export const parkingService = {
   async getOwnerLots(companyId) {
     if (!apiConfig.useMock) {
       const result = await requestJson(`/companies/${companyId}/lots`, {
-        token: import.meta.env.VITE_OWNER_JWT,
+        token: getProtectedToken(),
       })
 
       return (result.items || []).map(mapLotFromApi)
@@ -210,7 +215,7 @@ export const parkingService = {
     if (!apiConfig.useMock) {
       const lot = await requestJson(`/companies/${payload.companyId}/lots`, {
         method: 'POST',
-        token: import.meta.env.VITE_OWNER_JWT,
+        token: getProtectedToken(),
         body: {
           name: payload.name,
           address: payload.address,
@@ -244,7 +249,7 @@ export const parkingService = {
     if (!apiConfig.useMock) {
       const lot = await requestJson(`/lots/${lotId}`, {
         method: 'PATCH',
-        token: import.meta.env.VITE_OWNER_JWT,
+        token: getProtectedToken(),
         body: patch,
       })
 

@@ -1,5 +1,6 @@
-import { AppBar, Box, Button, Container, Stack, Toolbar, Typography } from '@mui/material'
+import { Alert, AppBar, Box, Button, Container, Stack, Toolbar, Typography } from '@mui/material'
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../auth/useAuth'
 
 const links = [
   { label: 'Home', to: '/' },
@@ -9,6 +10,8 @@ const links = [
 ]
 
 export default function AppShell({ children }) {
+  const auth = useAuth()
+
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: '1px solid #e6eef0' }}>
@@ -22,7 +25,17 @@ export default function AppShell({ children }) {
                 Smart lot monetization
               </Typography>
             </Stack>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              {auth.isAuthenticated ? (
+                <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                  {auth.email || 'Signed in'}
+                </Typography>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                  Not signed in
+                </Typography>
+              )}
+
               {links.map((link) => (
                 <Button
                   key={link.to}
@@ -38,12 +51,34 @@ export default function AppShell({ children }) {
                   {link.label}
                 </Button>
               ))}
+
+              {auth.isAuthenticated ? (
+                <Button variant="outlined" onClick={auth.logout}>
+                  Log out
+                </Button>
+              ) : (
+                <Button variant="contained" onClick={auth.login}>
+                  Log in
+                </Button>
+              )}
             </Stack>
           </Container>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 5 }}>
+        {auth.authError ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {auth.authError}
+          </Alert>
+        ) : null}
+
+        {!auth.isAuthenticated && !auth.canLogin ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Set VITE_COGNITO_DOMAIN and VITE_COGNITO_CLIENT_ID in .env.local to enable local login.
+          </Alert>
+        ) : null}
+
         {children}
       </Container>
     </Box>
