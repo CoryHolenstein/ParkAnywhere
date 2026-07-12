@@ -1,4 +1,5 @@
 export const statusOptions = ['PARKED', 'EXPIRED', 'TOWED']
+<<<<<<< HEAD
 
 export const companies = [
   {
@@ -139,3 +140,5 @@ export const reservations = [
     expiresAt: '2026-07-06T10:00:00Z',
   },
 ]
+=======
+>>>>>>> master

@@ -121,7 +121,11 @@ export default function CustomerPage() {
   }
 
   return (
+<<<<<<< HEAD
     <Stack spacing={3}>
+=======
+    <Stack spacing={3} className="page-shell">
+>>>>>>> master
       <SectionHeader
         eyebrow="Customer"
         title="Pay for parking"

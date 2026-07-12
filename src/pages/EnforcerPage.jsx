@@ -55,7 +55,11 @@ export default function EnforcerPage() {
   }
 
   return (
+<<<<<<< HEAD
     <Stack spacing={3}>
+=======
+    <Stack spacing={3} className="page-shell">
+>>>>>>> master
       <SectionHeader
         eyebrow="Enforcer"
         title="Reservation enforcement dashboard"
