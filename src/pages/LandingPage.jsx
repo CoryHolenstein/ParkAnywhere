@@ -1,140 +1,156 @@
-import { Button, Container, Box, Typography, Grid, Card, CardContent } from '@mui/material'
-import CloudUploadIcon from '@mui/icons-material/CloudUpload'
-import SecurityIcon from '@mui/icons-material/Security'
-import StorageIcon from '@mui/icons-material/Storage'
-import SearchIcon from '@mui/icons-material/Search'
-import ShareIcon from '@mui/icons-material/Share'
-import SpeedIcon from '@mui/icons-material/Speed'
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser'
-import LoginButton from '../components/LoginButton'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Grid,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar'
+import StorefrontIcon from '@mui/icons-material/Storefront'
+import SupportAgentIcon from '@mui/icons-material/SupportAgent'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import SectionHeader from '../components/SectionHeader'
+import { parkingService } from '../services/parkingService'
 import './LandingPage.css'
 
 export default function LandingPage() {
+  const navigate = useNavigate()
+  const [lotId, setLotId] = useState('')
+  const [error, setError] = useState('')
+  const [stats, setStats] = useState({ companies: 0, lots: 0, activeReservationCount: 0 })
 
-  const features = [
-    {
-      icon: <SecurityIcon sx={{ fontSize: 48 }} />,
-      title: 'Bank-Level Security',
-      description: 'Your files are encrypted and protected with enterprise-grade security'
-    },
-    {
-      icon: <StorageIcon sx={{ fontSize: 48 }} />,
-      title: 'Unlimited Organization',
-      description: 'Organize files into folders and categories that make sense for you'
-    },
-    {
-      icon: <SearchIcon sx={{ fontSize: 48 }} />,
-      title: 'Smart Search',
-      description: 'Find any file instantly with powerful search and filtering'
-    },
-    {
-      icon: <ShareIcon sx={{ fontSize: 48 }} />,
-      title: 'Easy Sharing',
-      description: 'Share files and folders securely with customizable permissions'
-    },
-    {
-      icon: <SpeedIcon sx={{ fontSize: 48 }} />,
-      title: 'Lightning Fast',
-      description: 'Lightning-fast uploads and downloads for all your files'
-    },
-    {
-      icon: <VerifiedUserIcon sx={{ fontSize: 48 }} />,
-      title: 'Always Available',
-      description: 'Access your files anytime, anywhere from any device'
+  useEffect(() => {
+    parkingService.getLandingSnapshot().then((snapshot) => {
+      setStats({
+        companies: snapshot.companies.length,
+        lots: snapshot.lots.length,
+        activeReservationCount: snapshot.activeReservationCount,
+      })
+    })
+  }, [])
+
+  const handleStart = async (event) => {
+    event.preventDefault()
+    const normalized = lotId.trim()
+
+    if (!normalized) {
+      setError('Enter a lot ID to continue.')
+      return
     }
-  ]
+
+    const lot = await parkingService.getLotById(normalized)
+
+    if (!lot) {
+      setError('No lot found for that ID.')
+      return
+    }
+
+    setError('')
+    navigate(`/customer/${normalized}`)
+  }
 
   return (
-    <div className="landing-page">
-      {/* Hero Section */}
-      <div className="hero-section">
-        <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <CloudUploadIcon sx={{ fontSize: 80, color: '#ffffff', marginBottom: 3 }} />
-            <Typography variant="h2" component="h1" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-              File Storage
-            </Typography>
-            <Typography variant="h5" sx={{ marginBottom: 4, maxWidth: '600px', margin: '0 auto 32px' }}>
-              Securely store, organize, and access your files in the cloud. Manage your documents, photos, and videos all in one place.
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <LoginButton
-                name="Get Started"
-                sx={{
-                  backgroundColor: '#ffffff',
-                  color: '#667eea',
-                  fontWeight: 'bold',
-                  '&:hover': {
-                    backgroundColor: '#f0f0f0',
-                  },
-                }}
-              />
-              <LoginButton
-                name="Sign In"
-                variant="outlined"
-                sx={{
-                  borderColor: '#ffffff',
-                  color: '#ffffff',
-                  fontWeight: 'bold',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderColor: '#ffffff',
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-        </Container>
-      </div>
+    <Stack spacing={4} className="landing-page page-shell">
+      <Box
+        className="hero-section"
+        sx={{
+          p: { xs: 3, md: 5 },
+          borderRadius: 4,
+          background:
+            'radial-gradient(circle at 15% 15%, rgba(29,78,216,0.16), transparent 38%), linear-gradient(130deg, #ffffff 20%, #ebfffc 100%)',
+          border: '1px solid #d9ebea',
+        }}
+      >
+        <SectionHeader
+          eyebrow="Pay For Parking Here"
+          title="Fast check-in for drivers, strong controls for lot teams"
+          subtitle="Customers can enter lot ID and pay in under a minute. Enforcers and owners get live visibility and controls."
+        />
 
-      {/* Features Section */}
-      <div className="features-section">
-        <Container maxWidth="lg" sx={{ py: 8 }}>
-          <Typography variant="h3" sx={{ textAlign: 'center', marginBottom: 6, fontWeight: 'bold' }}>
-            Powerful Features Built for You
-          </Typography>
-          <Grid container spacing={4}>
-            {features.map((feature, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', textAlign: 'center', boxShadow: 2, borderRadius: 2, transition: 'transform 0.3s ease, boxShadow 0.3s ease', '&:hover': { transform: 'translateY(-8px)', boxShadow: 4 } }}>
-                  <CardContent>
-                    <Box sx={{ color: '#667eea', marginBottom: 2 }}>
-                      {feature.icon}
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                      {feature.title}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {feature.description}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </div>
-
-      {/* CTA Section */}
-      <div className="cta-section">
-        <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
-          <Typography variant="h3" sx={{ marginBottom: 3, fontWeight: 'bold' }}>
-            Ready to Simplify Your File Management?
-          </Typography>
-          <Typography variant="h6" sx={{ marginBottom: 4, maxWidth: '600px', margin: '0 auto 32px', opacity: 0.9 }}>
-            Join thousands of users who trust us with their important files
-          </Typography>
-          <LoginButton
-            name="Start Free Today"
-            sx={{
-              backgroundColor: '#667eea',
-              '&:hover': {
-                backgroundColor: '#5568d3',
-              },
-            }}
+        <Stack component="form" direction={{ xs: 'column', md: 'row' }} spacing={2} onSubmit={handleStart}>
+          <TextField
+            value={lotId}
+            onChange={(event) => setLotId(event.target.value)}
+            label="Enter lot ID"
+            placeholder="Example: 8989898"
+            fullWidth
           />
-        </Container>
-      </div>
-    </div>
+          <Button variant="contained" size="large" type="submit">
+            Start Parking Session
+          </Button>
+        </Stack>
+
+        {error ? (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        ) : null}
+
+        <Stack direction="row" spacing={1.5} sx={{ mt: 3, flexWrap: 'wrap' }}>
+          <Chip label={`${stats.companies} companies onboarded`} />
+          <Chip label={`${stats.lots} active lots`} />
+          <Chip label={`${stats.activeReservationCount} cars parked now`} color="primary" />
+        </Stack>
+      </Box>
+
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={1.5}>
+                <DirectionsCarIcon color="primary" />
+                <Typography variant="h6">Customer flow</Typography>
+                <Typography color="text.secondary">
+                  Drivers open URL.com/lotid, provide required info, pay, and receive parking confirmation.
+                </Typography>
+                <Button component={Link} to="/customer" variant="outlined">
+                  Open Customer View
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={1.5}>
+                <SupportAgentIcon color="primary" />
+                <Typography variant="h6">Enforcer workflow</Typography>
+                <Typography color="text.secondary">
+                  Search reservations by plate or spot, then update status to PARKED, EXPIRED, or TOWED.
+                </Typography>
+                <Button component={Link} to="/enforcer" variant="outlined">
+                  Open Enforcer View
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card>
+            <CardContent>
+              <Stack spacing={1.5}>
+                <StorefrontIcon color="primary" />
+                <Typography variant="h6">Owner controls</Typography>
+                <Typography color="text.secondary">
+                  Create lots, set required customer inputs, and configure spot and pricing rules per lot.
+                </Typography>
+                <Button component={Link} to="/owner" variant="outlined">
+                  Open Owner View
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Stack>
   )
 }

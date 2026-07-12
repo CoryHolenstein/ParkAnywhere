@@ -45,8 +45,8 @@ export default function Callback() {
         refreshToken: auth.user.refresh_token,
       });
 
-      console.log('[Callback] Navigating to /app');
-      navigate("/app", { replace: true });
+      console.log('[Callback] Navigating to /owner');
+      navigate('/owner', { replace: true });
     } else if (auth.error) {
       console.error('[Callback] Authentication error:', {
         error: auth.error.message,

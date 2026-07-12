@@ -6,8 +6,8 @@ const appOrigin = window.location.origin;
 Amplify.configure({
   Auth: {
     Cognito: {
-      userPoolId: "us-east-1_p29KLGI6E",
-      userPoolClientId: "6rqv58tucti9lsmnpfrb8i9ngi",
+      userPoolId: "us-east-1_GQqqlB8VP",
+      userPoolClientId: "2u7en4ffrss7vdhgi2vdqp7e8m",
       loginWith: {
         oauth: {
           domain: "us-east-1lisojvva4.auth.us-east-1.amazoncognito.com",

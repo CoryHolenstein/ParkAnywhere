@@ -8,8 +8,8 @@ import './amplify-config.js'
 const appOrigin = window.location.origin
 
 const cognitoAuthConfig = {
-  authority: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_lisoJVVA4",
-  client_id: "6rqv58tucti9lsmnpfrb8i9ngi",
+  authority: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_GQqqlB8VP",
+  client_id: "2u7en4ffrss7vdhgi2vdqp7e8m",
   redirect_uri: `${appOrigin}/callback`,
   post_logout_redirect_uri: `${appOrigin}/logout`,
   response_type: "code",
