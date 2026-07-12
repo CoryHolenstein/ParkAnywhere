@@ -119,9 +119,9 @@ function App() {
       <CssBaseline />
       <BrowserRouter>
         <AppRoutes />
+
       </BrowserRouter>
     </ThemeProvider>
   )
 }
-
 export default App;

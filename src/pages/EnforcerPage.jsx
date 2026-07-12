@@ -55,11 +55,7 @@ export default function EnforcerPage() {
   }
 
   return (
-<<<<<<< HEAD
-    <Stack spacing={3}>
-=======
     <Stack spacing={3} className="page-shell">
->>>>>>> master
       <SectionHeader
         eyebrow="Enforcer"
         title="Reservation enforcement dashboard"
@@ -153,9 +149,7 @@ export default function EnforcerPage() {
                     <FormControl size="small" fullWidth>
                       <Select
                         value={reservation.status}
-                        onChange={(event) =>
-                          handleStatusChange(reservation.id, event.target.value)
-                        }
+                        onChange={(event) => handleStatusChange(reservation.id, event.target.value)}
                       >
                         {statusOptions.map((option) => (
                           <MenuItem key={option} value={option}>

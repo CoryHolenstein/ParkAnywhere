@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-/* App-level styles are handled by MUI theme and component sx props. */
-=======
 body {
 	margin: 0;
 	min-width: 320px;
@@ -102,4 +99,3 @@ body {
 		margin-top: 10px;
 	}
 }
->>>>>>> master

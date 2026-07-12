@@ -17,10 +17,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import SectionHeader from '../components/SectionHeader'
 import { parkingService } from '../services/parkingService'
-<<<<<<< HEAD
-=======
 import './LandingPage.css'
->>>>>>> master
 
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -59,14 +56,9 @@ export default function LandingPage() {
   }
 
   return (
-<<<<<<< HEAD
-    <Stack spacing={4}>
-      <Box
-=======
     <Stack spacing={4} className="landing-page page-shell">
       <Box
         className="hero-section"
->>>>>>> master
         sx={{
           p: { xs: 3, md: 5 },
           borderRadius: 4,

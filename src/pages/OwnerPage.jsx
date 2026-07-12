@@ -111,11 +111,7 @@ export default function OwnerPage() {
   }
 
   return (
-<<<<<<< HEAD
-    <Stack spacing={3}>
-=======
     <Stack spacing={3} className="page-shell">
->>>>>>> master
       <SectionHeader
         eyebrow="Owner"
         title="Business owner controls"
